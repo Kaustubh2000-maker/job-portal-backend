@@ -1,0 +1,22 @@
+backend/
+├── app.js
+├── server.js
+├── config/
+│   └── db.js
+├── routes/
+│   ├── userRoutes.js
+│   ├── jobRoutes.js
+│   └── applicationRoutes.js
+├── controllers/
+│   ├── userController.js
+│   ├── jobController.js
+│   └── applicationController.js
+├── models/
+│   ├── User.js
+│   ├── Job.js
+│   └── Application.js
+├── middlewares/
+│   └── errorMiddleware.js
+├── utils/
+│   └── appError.js
+└── .env
