@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const globalErrorHandler = require("./controllers/errorController");
+const jobSeekerRouter = require("./routes/jobseekerRoutes");
 
 const app = express();
 const userRouter = require("./routes/userRoutes");
@@ -21,7 +22,9 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use("/files", express.static("files"));
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/jobseekers", jobSeekerRouter);
 
 app.use(globalErrorHandler);
 

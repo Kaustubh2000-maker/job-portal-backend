@@ -1,9 +1,5 @@
 const AppError = require("../utils/appError");
 
-/* =======================
-   DB ERROR HANDLERS
-======================= */
-
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}`;
   return new AppError(message, 400);
@@ -21,9 +17,6 @@ const handleValidationErrorDB = (err) => {
   return new AppError(message, 400);
 };
 
-/* =======================
-   SEND ERROR (DEV)
-======================= */
 const sendErrorDev = (err, req, res) => {
   return res.status(err.statusCode).json({
     status: err.status,
@@ -33,9 +26,6 @@ const sendErrorDev = (err, req, res) => {
   });
 };
 
-/* =======================
-   SEND ERROR (PROD)
-======================= */
 const sendErrorProd = (err, req, res) => {
   if (err.isOperational) {
     return res.status(err.statusCode).json({
@@ -53,9 +43,6 @@ const sendErrorProd = (err, req, res) => {
   });
 };
 
-/* =======================
-   GLOBAL ERROR HANDLER
-======================= */
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
