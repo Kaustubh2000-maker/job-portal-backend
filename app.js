@@ -9,10 +9,12 @@ const jobRouter = require("./routes/jobRoutes");
 const applicationRouter = require("./routes/applicationRoutes");
 const app = express();
 const userRouter = require("./routes/userRoutes");
+const cookieParser = require("cookie-parser");
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));

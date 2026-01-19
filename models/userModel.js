@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ["STUDENT", "COMPANY", "ADMIN"],
+    enum: ["JOBSEEKER", "COMPANY", "ADMIN"],
     required: true,
   },
 
@@ -50,6 +50,7 @@ const userSchema = new mongoose.Schema({
     default: true,
     select: false,
   },
+  passwordChangedAt: Date,
 });
 
 userSchema.pre("save", async function () {
@@ -58,6 +59,42 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
 });
+
+// userSchema.pre("save", function (next) {
+//   if (!this.isModified("password") || this.isNew) return next();
+
+//   this.passwordChangedAt = Date.now() - 1000;
+
+//   next();
+// });
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
+  this.password = await bcrypt.hash(this.password, 12);
+  this.passwordConfirm = undefined;
+
+  // next(); // giving error while sign in so commented
+});
+
+userSchema.methods.changedPassowordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+
+    return JWTTimestamp < changedTimestamp;
+  }
+  return false;
+};
+
+userSchema.methods.correctPassword = async function (
+  candidatePassword,
+  userPassword
+) {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;
