@@ -11,6 +11,8 @@ const app = express();
 const userRouter = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 
+const adminRoutes = require("./routes/adminRoutes");
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,6 +36,7 @@ app.use("/api/v1/companies", companyRouter);
 app.use("/api/v1/company-users", companyUserRouter);
 app.use("/api/v1/jobs", jobRouter);
 app.use("/api/v1/applications", applicationRouter);
+app.use("/api/v1/admin", adminRoutes);
 
 app.use(globalErrorHandler);
 
