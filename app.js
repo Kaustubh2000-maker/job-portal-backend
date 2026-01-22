@@ -12,8 +12,15 @@ const userRouter = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 
 const adminRoutes = require("./routes/adminRoutes");
+const corsOptions = {
+  origin: "http://localhost:5173", // EXACT frontend URL
+  credentials: true, // allow cookies
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.use(cors());
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

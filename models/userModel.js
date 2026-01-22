@@ -53,28 +53,14 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
 });
 
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-
-  this.password = await bcrypt.hash(this.password, 12);
-  this.passwordConfirm = undefined;
-});
-
-// userSchema.pre("save", function (next) {
-//   if (!this.isModified("password") || this.isNew) return next();
-
-//   this.passwordChangedAt = Date.now() - 1000;
-
-//   next();
-// });
-
 userSchema.pre("save", async function (next) {
+  // Only hash if password was modified
   if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
 
-  // next(); // giving error while sign in so commented
+  // next();
 });
 
 userSchema.methods.changedPassowordAfter = function (JWTTimestamp) {

@@ -75,3 +75,18 @@ exports.createApplication = catchAsync(async (req, res, next) => {
     data: { application },
   });
 });
+
+exports.getApplicationsByJobSeeker = catchAsync(async (req, res, next) => {
+  const { jobSeekerId } = req.params;
+
+  const applications = await Application.find({ jobSeeker: jobSeekerId })
+    .populate("job", "title location")
+    // .populate("company", "name")
+    .sort("-createdAt");
+
+  res.status(200).json({
+    status: "success",
+    results: applications.length,
+    data: { applications },
+  });
+});
