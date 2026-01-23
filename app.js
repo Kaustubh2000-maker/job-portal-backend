@@ -10,6 +10,7 @@ const applicationRouter = require("./routes/applicationRoutes");
 const app = express();
 const userRouter = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const adminRoutes = require("./routes/adminRoutes");
 const corsOptions = {
@@ -18,6 +19,9 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
+
+// serve uploaded files
+app.use("/files", express.static(path.join(__dirname, "files")));
 
 app.use(cors(corsOptions));
 

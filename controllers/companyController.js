@@ -90,3 +90,22 @@ exports.deleteCompany = catchAsync(async (req, res, next) => {
     message: "Company deactivated successfully",
   });
 });
+
+exports.getMyCompany = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+
+  const company = await Company.findOne({ createdBy: userId });
+
+  console.log("entered");
+
+  if (!company) {
+    return next(new AppError("No company found for this user", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      company,
+    },
+  });
+});

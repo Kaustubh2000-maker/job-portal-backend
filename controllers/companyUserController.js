@@ -89,3 +89,41 @@ exports.getPendingCompanyUsers = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.checkCompanyUserExistence = catchAsync(async (req, res, next) => {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return next(new AppError("userId is required", 400));
+  }
+
+  const companyUser = await CompanyUser.findOne({ user: userId }).populate(
+    "company",
+    "name industry location"
+  );
+
+  if (!companyUser) {
+    return res.status(200).json({
+      status: "success",
+      exists: false,
+      message: "User has not applied to any company",
+    });
+  }
+
+  res.status(200).json({
+    status: "success",
+    exists: true,
+    data: {
+      companyUserId: companyUser._id,
+      company: companyUser.company,
+      role: companyUser.role,
+      status: companyUser.status,
+    },
+    message:
+      companyUser.status === "PENDING"
+        ? "Application already sent, waiting for approval"
+        : companyUser.status === "APPROVED"
+        ? "User already part of a company"
+        : "Application was rejected",
+  });
+});
