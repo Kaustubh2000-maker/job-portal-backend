@@ -4,6 +4,7 @@ const companyController = require("../controllers/companyController");
 const authController = require("./../controllers/authController");
 
 const router = express.Router();
+router.get("/search", companyController.getCompanies);
 
 router
   .route("/")

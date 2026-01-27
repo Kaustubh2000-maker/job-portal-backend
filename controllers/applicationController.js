@@ -3,6 +3,7 @@ const Job = require("../models/jobModel");
 const JobSeeker = require("../models/jobseekerModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const CompanyUser = require("../models/companyUserModel");
 
 exports.createApplication = catchAsync(async (req, res, next) => {
   const { jobId, jobSeekerId, applyType } = req.body;
@@ -82,6 +83,94 @@ exports.getApplicationsByJobSeeker = catchAsync(async (req, res, next) => {
   const applications = await Application.find({ jobSeeker: jobSeekerId })
     .populate("job", "title location")
     // .populate("company", "name")
+    .sort("-createdAt");
+
+  res.status(200).json({
+    status: "success",
+    results: applications.length,
+    data: { applications },
+  });
+});
+
+exports.updateApplicationStatus = catchAsync(async (req, res, next) => {
+  const { status, actionBy } = req.body;
+
+  if (!["APPROVED", "REJECTED"].includes(status)) {
+    return next(new AppError("Invalid status", 400));
+  }
+
+  if (!actionBy) {
+    return next(new AppError("actionBy (user id) is required", 400));
+  }
+
+  const application = await Application.findById(req.params.applicationId);
+
+  if (!application) {
+    return next(new AppError("Application not found", 404));
+  }
+
+  const job = await Job.findById(application.job);
+
+  if (!job) {
+    return next(new AppError("Job not found", 404));
+  }
+
+  // 🔐 OWNER or APPROVED HR of same company
+  const access = await CompanyUser.findOne({
+    user: actionBy,
+    company: job.company,
+    status: "APPROVED",
+  });
+
+  if (!access) {
+    return next(
+      new AppError("No permission to update application status", 403)
+    );
+  }
+
+  application.status = status;
+  await application.save();
+
+  res.status(200).json({
+    status: "success",
+    message: `Application ${status.toLowerCase()} successfully`,
+  });
+});
+
+exports.getApplicationsByJobId = catchAsync(async (req, res, next) => {
+  const { jobId } = req.params;
+  const { status } = req.query; // optional filter
+  const userId = req.user.id; // assuming auth middleware
+
+  // 1️⃣ Check job exists
+  const job = await Job.findById(jobId);
+  if (!job) {
+    return next(new AppError("Job not found", 404));
+  }
+
+  // 2️⃣ Verify company access (OWNER / APPROVED HR)
+  const access = await CompanyUser.findOne({
+    user: userId,
+    company: job.company,
+    status: "APPROVED",
+  });
+
+  if (!access) {
+    return next(
+      new AppError("You do not have permission to view applications", 403)
+    );
+  }
+
+  // 3️⃣ Build query
+  const query = { job: jobId };
+  if (status) {
+    query.status = status; // PENDING | APPROVED | REJECTED
+  }
+
+  // 4️⃣ Fetch applications
+  const applications = await Application.find(query)
+    .populate("jobSeeker", "user")
+    .populate("job", "title location")
     .sort("-createdAt");
 
   res.status(200).json({

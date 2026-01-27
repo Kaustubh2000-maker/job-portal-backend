@@ -25,6 +25,7 @@ const companySchema = new mongoose.Schema(
       trim: true,
     },
 
+    description: { type: String, trim: true },
     logo: {
       type: String, // file path or URL
     },
@@ -44,6 +45,12 @@ const companySchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+companySchema.index({
+  name: "text",
+  industry: "text",
+  description: "text",
+  location: "text",
+});
 
 const Company = mongoose.model("Company", companySchema);
 module.exports = Company;

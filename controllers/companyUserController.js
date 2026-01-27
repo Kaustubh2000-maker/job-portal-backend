@@ -5,25 +5,44 @@ const AppError = require("../utils/appError");
 exports.applyToCompany = catchAsync(async (req, res, next) => {
   const { user, company } = req.body;
 
-  if (!user || !company) {
-    return next(new AppError("User and company are required", 400));
+  if (!company) {
+    return next(new AppError("Company is required", 400));
   }
 
-  const existing = await CompanyUser.findOne({ user, company });
-  if (existing) {
-    return next(new AppError("Request already exists", 400));
+  let companyUser = await CompanyUser.findOne({ user: user });
+
+  // 🟢 First-time apply
+  if (!companyUser) {
+    companyUser = await CompanyUser.create({
+      user: user,
+      company,
+      status: "PENDING",
+      role: "HR",
+    });
+
+    return res.status(201).json({
+      status: "success",
+      message: "Request sent to company",
+      data: { companyUser },
+    });
   }
 
-  const companyUser = await CompanyUser.create({
-    user,
-    company,
-    role: "HR",
-    status: "PENDING",
-  });
+  // 🔴 Already active
+  if (["PENDING", "APPROVED"].includes(companyUser.status)) {
+    return next(
+      new AppError("You already have an active company request", 400)
+    );
+  }
 
-  res.status(201).json({
+  // 🟡 REJECTED → reapply (UPDATE same record)
+  companyUser.company = company;
+  companyUser.status = "PENDING";
+  companyUser.role = "HR";
+  await companyUser.save();
+
+  res.status(200).json({
     status: "success",
-    message: "Request sent to company ",
+    message: "Request sent again",
     data: { companyUser },
   });
 });
@@ -89,17 +108,18 @@ exports.getPendingCompanyUsers = catchAsync(async (req, res, next) => {
     },
   });
 });
+// ///////////////////////////////////////
 
 exports.checkCompanyUserExistence = catchAsync(async (req, res, next) => {
-  const { userId } = req.query;
+  const userId = req.user.id;
 
   if (!userId) {
     return next(new AppError("userId is required", 400));
   }
 
   const companyUser = await CompanyUser.findOne({ user: userId }).populate(
-    "company",
-    "name industry location"
+    "company"
+    // "name industry location"
   );
 
   if (!companyUser) {

@@ -11,6 +11,7 @@ const app = express();
 const userRouter = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const searchRoutes = require("./routes/searchRoutes");
 
 const adminRoutes = require("./routes/adminRoutes");
 const corsOptions = {
@@ -48,6 +49,7 @@ app.use("/api/v1/company-users", companyUserRouter);
 app.use("/api/v1/jobs", jobRouter);
 app.use("/api/v1/applications", applicationRouter);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/search", searchRoutes);
 
 app.use(globalErrorHandler);
 

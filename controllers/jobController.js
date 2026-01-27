@@ -3,9 +3,6 @@ const CompanyUser = require("../models/companyUserModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 
-/* ===============================
-   CREATE JOB (OWNER / APPROVED HR)
-================================ */
 exports.createJob = catchAsync(async (req, res, next) => {
   const { company, createdBy } = req.body;
 
@@ -32,9 +29,6 @@ exports.createJob = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ===============================
-   GET ALL JOBS (PUBLIC)
-================================ */
 exports.getAllJobs = catchAsync(async (req, res, next) => {
   const jobs = await Job.find({ status: "OPEN" })
     .populate("company", "name location")
@@ -47,9 +41,6 @@ exports.getAllJobs = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ===============================
-   GET SINGLE JOB
-================================ */
 exports.getJob = catchAsync(async (req, res, next) => {
   const job = await Job.findById(req.params.id).populate(
     "company",
@@ -66,9 +57,6 @@ exports.getJob = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ===============================
-   UPDATE JOB (OWNER / HR)
-================================ */
 exports.updateJob = catchAsync(async (req, res, next) => {
   const { updatedBy } = req.body;
 
@@ -117,9 +105,6 @@ exports.updateJob = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ===============================
-   CLOSE JOB (SOFT)
-================================ */
 exports.closeJob = catchAsync(async (req, res, next) => {
   const { closedBy } = req.body;
 
@@ -144,5 +129,60 @@ exports.closeJob = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     message: "Job closed successfully",
+  });
+});
+
+exports.getJobsByCompany = catchAsync(async (req, res, next) => {
+  const { companyId } = req.params;
+  const { requestedBy } = req.query;
+
+  if (!requestedBy) {
+    return next(new AppError("requestedBy (user id) is required", 400));
+  }
+
+  // Check access: OWNER or APPROVED HR of same company
+  const access = await CompanyUser.findOne({
+    user: requestedBy,
+    company: companyId,
+    status: "APPROVED",
+  });
+
+  if (!access) {
+    return next(new AppError("No permission to view company jobs", 403));
+  }
+
+  const jobs = await Job.find({ company: companyId }).sort({ createdAt: -1 });
+
+  res.status(200).json({
+    status: "success",
+    results: jobs.length,
+    data: {
+      jobs,
+    },
+  });
+});
+
+exports.searchJobs = catchAsync(async (req, res) => {
+  const { q } = req.query;
+
+  if (!q || q.trim().length < 2) {
+    return res.status(200).json({
+      status: "success",
+      results: 0,
+      data: { jobs: [] },
+    });
+  }
+
+  const jobs = await Job.find(
+    { $text: { $search: q }, status: "OPEN" },
+    { score: { $meta: "textScore" } }
+  )
+    .sort({ score: { $meta: "textScore" } })
+    .limit(20);
+
+  res.status(200).json({
+    status: "success",
+    results: jobs.length,
+    data: { jobs },
   });
 });
