@@ -12,6 +12,8 @@ const userRouter = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 const searchRoutes = require("./routes/searchRoutes");
+const authRoutes = require("./routes/authRoutes");
+const interviewRoutes = require("./routes/interviewRoutes");
 
 const adminRoutes = require("./routes/adminRoutes");
 const corsOptions = {
@@ -50,6 +52,8 @@ app.use("/api/v1/jobs", jobRouter);
 app.use("/api/v1/applications", applicationRouter);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/search", searchRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/interviews", interviewRoutes);
 
 app.use(globalErrorHandler);
 
