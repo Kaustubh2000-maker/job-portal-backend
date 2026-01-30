@@ -159,3 +159,87 @@ exports.getCompanies = catchAsync(async (req, res) => {
     data: { companies },
   });
 });
+const buildAdminCompanyFilter = (query) => {
+  const { search, industry, location, isActive, createdAfter } = query;
+
+  const filter = {};
+
+  if (search) {
+    filter.$text = { $search: search };
+  }
+
+  if (industry) {
+    filter.industry = new RegExp(industry, "i");
+  }
+
+  if (location) {
+    filter.location = new RegExp(location, "i");
+  }
+
+  if (isActive !== undefined) {
+    filter.isActive = isActive === "true";
+  }
+
+  if (createdAfter) {
+    filter.createdAt = { $gte: new Date(createdAfter) };
+  }
+
+  return filter;
+};
+exports.getAllCompaniesForAdmin = catchAsync(async (req, res) => {
+  const filter = buildAdminCompanyFilter(req.query);
+
+  const companies = await Company.find(filter).sort({
+    createdAt: -1,
+  });
+
+  res.status(200).json({
+    status: "success",
+    results: companies.length,
+    data: {
+      companies,
+    },
+  });
+});
+
+const ExcelJS = require("exceljs");
+
+exports.exportCompaniesExcel = catchAsync(async (req, res) => {
+  const filter = buildAdminCompanyFilter(req.query);
+
+  const companies = await Company.find(filter).sort({
+    createdAt: -1,
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Companies");
+
+  sheet.columns = [
+    { header: "Name", key: "name", width: 30 },
+    { header: "Industry", key: "industry", width: 25 },
+    { header: "Location", key: "location", width: 25 },
+    { header: "Website", key: "website", width: 30 },
+    { header: "Status", key: "status", width: 15 },
+    { header: "Created At", key: "createdAt", width: 18 },
+  ];
+
+  companies.forEach((c) => {
+    sheet.addRow({
+      name: c.name,
+      industry: c.industry || "",
+      location: c.location || "",
+      website: c.website || "",
+      status: c.isActive ? "Active" : "Inactive",
+      createdAt: c.createdAt ? c.createdAt.toISOString().split("T")[0] : "",
+    });
+  });
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader("Content-Disposition", "attachment; filename=companies.xlsx");
+
+  await workbook.xlsx.write(res);
+  res.end();
+});

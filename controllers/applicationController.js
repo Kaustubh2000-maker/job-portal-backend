@@ -4,6 +4,7 @@ const JobSeeker = require("../models/jobseekerModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const CompanyUser = require("../models/companyUserModel");
+const ExcelJS = require("exceljs");
 
 exports.createApplication = catchAsync(async (req, res, next) => {
   const { jobId, jobSeekerId, applyType } = req.body;
@@ -178,4 +179,137 @@ exports.getApplicationsByJobId = catchAsync(async (req, res, next) => {
     results: applications.length,
     data: { applications },
   });
+});
+
+//////////// FILTER BUILDER
+
+const buildAdminApplicationFilter = (query) => {
+  const { status, jobTitle, companyName, candidate, appliedFrom, appliedTo } =
+    query;
+
+  const filter = {};
+
+  if (status && status !== "ALL") {
+    filter.status = status;
+  }
+
+  if (candidate) {
+    filter.$or = [
+      { "profileSnapshot.name": new RegExp(candidate, "i") },
+      { "profileSnapshot.email": new RegExp(candidate, "i") },
+    ];
+  }
+
+  if (appliedFrom || appliedTo) {
+    filter.createdAt = {};
+    if (appliedFrom) filter.createdAt.$gte = new Date(appliedFrom);
+    if (appliedTo) filter.createdAt.$lte = new Date(appliedTo);
+  }
+
+  return filter;
+};
+
+exports.getAllApplicationsForAdmin = catchAsync(async (req, res) => {
+  const { jobTitle, companyName } = req.query;
+
+  const filter = buildAdminApplicationFilter(req.query);
+
+  let applications = await Application.find(filter)
+    .populate({
+      path: "job",
+      populate: {
+        path: "company",
+      },
+    })
+    .sort({ createdAt: -1 });
+
+  // ✅ JOB TITLE FILTER
+  if (jobTitle) {
+    const jt = jobTitle.toLowerCase();
+    applications = applications.filter((a) =>
+      a.job?.title?.toLowerCase().includes(jt)
+    );
+  }
+
+  // ✅ COMPANY NAME FILTER
+  if (companyName) {
+    const cn = companyName.toLowerCase();
+    applications = applications.filter((a) =>
+      a.job?.company?.name?.toLowerCase().includes(cn)
+    );
+  }
+
+  res.status(200).json({
+    status: "success",
+    results: applications.length,
+    data: { applications },
+  });
+});
+
+exports.exportApplicationsExcel = catchAsync(async (req, res) => {
+  const { jobTitle, companyName } = req.query;
+
+  const filter = buildAdminApplicationFilter(req.query);
+
+  let applications = await Application.find(filter).populate({
+    path: "job",
+    select: "title",
+    populate: {
+      path: "company",
+      select: "name",
+    },
+  });
+
+  // ✅ SAME JOB TITLE FILTER AS GET ALL
+  if (jobTitle) {
+    const jt = jobTitle.toLowerCase();
+    applications = applications.filter((a) =>
+      a.job?.title?.toLowerCase().includes(jt)
+    );
+  }
+
+  // ✅ SAME COMPANY NAME FILTER AS GET ALL
+  if (companyName) {
+    const cn = companyName.toLowerCase();
+    applications = applications.filter((a) =>
+      a.job?.company?.name?.toLowerCase().includes(cn)
+    );
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Applications");
+
+  sheet.columns = [
+    { header: "Candidate Name", key: "name", width: 25 },
+    { header: "Email", key: "email", width: 30 },
+    { header: "Mobile", key: "mobile", width: 15 },
+    { header: "Job Title", key: "job", width: 30 },
+    { header: "Company", key: "company", width: 30 },
+    { header: "Status", key: "status", width: 15 },
+    { header: "Applied At", key: "createdAt", width: 18 },
+  ];
+
+  applications.forEach((a) => {
+    sheet.addRow({
+      name: a.profileSnapshot?.name || "",
+      email: a.profileSnapshot?.email || "",
+      mobile: a.profileSnapshot?.mobile || "",
+      job: a.job?.title || "",
+      company: a.job?.company?.name || "",
+      status: a.status,
+      createdAt: a.createdAt ? a.createdAt.toISOString().split("T")[0] : "",
+    });
+  });
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader(
+    "Content-Disposition",
+    "attachment; filename=applications.xlsx"
+  );
+
+  await workbook.xlsx.write(res);
+  res.end();
 });

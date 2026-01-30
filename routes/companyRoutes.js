@@ -4,6 +4,22 @@ const companyController = require("../controllers/companyController");
 const authController = require("./../controllers/authController");
 
 const router = express.Router();
+
+router.get(
+  "/admin",
+  authController.protect,
+  authController.restrictTo("ADMIN"),
+  // jobSeekerController.getAllJobSeekersForAdmin
+  companyController.getAllCompaniesForAdmin
+);
+
+router.get(
+  "/admin/export",
+  authController.protect,
+  authController.restrictTo("ADMIN"),
+  companyController.exportCompaniesExcel
+);
+
 router.get("/search", companyController.getCompanies);
 
 router
