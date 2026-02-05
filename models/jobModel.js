@@ -60,6 +60,10 @@ const jobSchema = new mongoose.Schema(
       enum: ["OPEN", "CLOSED"],
       default: "OPEN",
     },
+    applyCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

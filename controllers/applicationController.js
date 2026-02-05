@@ -5,6 +5,7 @@ const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const CompanyUser = require("../models/companyUserModel");
 const ExcelJS = require("exceljs");
+const { sendNotification } = require("../socket");
 
 exports.createApplication = catchAsync(async (req, res, next) => {
   const { jobId, jobSeekerId, applyType } = req.body;
@@ -70,6 +71,7 @@ exports.createApplication = catchAsync(async (req, res, next) => {
   }
 
   const application = await Application.create(data);
+  await Job.updateOne({ _id: jobId }, { $inc: { applyCount: 1 } });
 
   res.status(201).json({
     status: "success",
@@ -110,16 +112,15 @@ exports.updateApplicationStatus = catchAsync(async (req, res, next) => {
     return next(new AppError("Application not found", 404));
   }
 
-  const job = await Job.findById(application.job);
+  const job = await Job.findById(application.job).populate("company");
 
   if (!job) {
     return next(new AppError("Job not found", 404));
   }
 
-  // 🔐 OWNER or APPROVED HR of same company
   const access = await CompanyUser.findOne({
     user: actionBy,
-    company: job.company,
+    company: job.company._id,
     status: "APPROVED",
   });
 
@@ -132,6 +133,22 @@ exports.updateApplicationStatus = catchAsync(async (req, res, next) => {
   application.status = status;
   await application.save();
 
+  const jobSeeker = await JobSeeker.findById(application.jobSeeker).populate(
+    "user"
+  );
+
+  if (jobSeeker?.user) {
+    sendNotification(jobSeeker.user._id, {
+      type: "APPLICATION_STATUS",
+      status,
+      message: `Your application for "${job.title}" at ${
+        job.company.name
+      } was ${status.toLowerCase()}`,
+      applicationId: application._id,
+      createdAt: new Date(),
+    });
+  }
+
   res.status(200).json({
     status: "success",
     message: `Application ${status.toLowerCase()} successfully`,
@@ -143,13 +160,13 @@ exports.getApplicationsByJobId = catchAsync(async (req, res, next) => {
   const { status } = req.query; // optional filter
   const userId = req.user.id; // assuming auth middleware
 
-  // 1️⃣ Check job exists
+  // Check job exists
   const job = await Job.findById(jobId);
   if (!job) {
     return next(new AppError("Job not found", 404));
   }
 
-  // 2️⃣ Verify company access (OWNER / APPROVED HR)
+  // Verify company access (OWNER / APPROVED HR)
   const access = await CompanyUser.findOne({
     user: userId,
     company: job.company,
@@ -162,13 +179,13 @@ exports.getApplicationsByJobId = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 3️⃣ Build query
+  //  Build query
   const query = { job: jobId };
   if (status) {
     query.status = status; // PENDING | APPROVED | REJECTED
   }
 
-  // 4️⃣ Fetch applications
+  // Fetch applications
   const applications = await Application.find(query)
     .populate("jobSeeker", "user")
     .populate("job", "title location")

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const app = require("./app");
+const { initSocket } = require("./socket");
 
 dotenv.config({ path: "./.env" });
 
@@ -24,6 +25,9 @@ const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   console.log(`App running on port ${PORT}.....`);
 });
+
+initSocket(server);
+console.log("🔥 Socket server initialized");
 
 process.on("unhandledRejection", (err) => {
   console.log(err.name, err.message);
