@@ -29,7 +29,6 @@ const applicationSchema = new mongoose.Schema(
       enum: ["PROFILE", "UPLOAD"],
     },
 
-    /* snapshot of profile at apply time */
     profileSnapshot: {
       name: String,
       email: String,
@@ -48,7 +47,6 @@ const applicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* prevent duplicate apply */
 applicationSchema.index({ job: 1, jobSeeker: 1 }, { unique: true });
 
 module.exports = mongoose.model("Application", applicationSchema);

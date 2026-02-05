@@ -71,7 +71,6 @@ exports.updateJobSeekerProfile = catchAsync(async (req, res, next) => {
     data.resume = req.files.resume[0].path;
   }
 
-  /* ✅ PARSE JSON FIELDS INTO data */
   if (data.skills) {
     data.skills = JSON.parse(data.skills);
   }
@@ -96,9 +95,6 @@ exports.updateJobSeekerProfile = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ===============================
-   GET JOB SEEKER PROFILE ( by userid)
-================================ */
 exports.getJobSeekerProfile = catchAsync(async (req, res, next) => {
   const jobSeeker = await JobSeeker.findOne({
     user: req.params.userId,
@@ -160,54 +156,6 @@ const buildJobSeekerAdminFilter = (query) => {
 
   return filter;
 };
-
-// exports.getAllJobSeekersForAdmin = catchAsync(async (req, res, next) => {
-//   const { search = "", gender, status, skill, createdAfter } = req.query;
-
-//   const filter = {};
-
-//   /* 🔍 TEXT SEARCH */
-//   if (search) {
-//     const searchRegex = new RegExp(search, "i");
-//     filter.$or = [
-//       { "user.name": searchRegex },
-//       { "user.email": searchRegex },
-//       { "user.mobile": searchRegex },
-//     ];
-//   }
-
-//   /* 👤 GENDER */
-//   if (gender) {
-//     filter.gender = gender;
-//   }
-
-//   /* 🧑‍💼 STATUS (THIS FIXES YOUR ISSUE) */
-//   if (status) {
-//     filter.status = status;
-//   }
-
-//   /* 🧠 SKILL */
-//   if (skill) {
-//     filter.skills = { $in: [new RegExp(skill, "i")] };
-//   }
-
-//   /* 📅 CREATED AFTER */
-//   if (createdAfter) {
-//     filter.createdAt = { $gte: new Date(createdAfter) };
-//   }
-
-//   const jobSeekers = await JobSeeker.find(filter)
-//     .populate("user", "name email mobile role active")
-//     .sort({ createdAt: -1 });
-
-//   res.status(200).json({
-//     status: "success",
-//     results: jobSeekers.length,
-//     data: {
-//       jobSeekers,
-//     },
-//   });
-// });
 
 exports.getAllJobSeekersForAdmin = catchAsync(async (req, res) => {
   const filter = buildJobSeekerAdminFilter(req.query);

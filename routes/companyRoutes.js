@@ -36,6 +36,4 @@ router
   .patch(companyController.updateCompany)
   .delete(companyController.deleteCompany);
 
-/* Get company created by logged-in user */
-
 module.exports = router;
