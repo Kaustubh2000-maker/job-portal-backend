@@ -63,7 +63,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const user = await User.findOne({ email }).select("+password");
 
-  console.log(user);
+  // console.log(user);
   // console.log(await user.correctPassword(password, user.password));
 
   if (!user || !(await user.correctPassword(password, user.password))) {

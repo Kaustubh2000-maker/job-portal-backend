@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const app = require("./app");
 const { initSocket } = require("./socket");
+require("./config/redis");
 
 dotenv.config({ path: "./.env" });
 

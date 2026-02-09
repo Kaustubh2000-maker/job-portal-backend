@@ -1,6 +1,7 @@
 const Job = require("../models/jobModel");
 const CompanyUser = require("../models/companyUserModel");
 const catchAsync = require("../utils/catchAsync");
+const redisClient = require("../config/redis");
 const AppError = require("../utils/appError");
 
 exports.createJob = catchAsync(async (req, res, next) => {
@@ -29,13 +30,47 @@ exports.createJob = catchAsync(async (req, res, next) => {
   });
 });
 
+// exports.getAllJobs = catchAsync(async (req, res, next) => {
+//   const jobs = await Job.find({ status: "OPEN" })
+//     .populate("company", "name location")
+//     .sort({ createdAt: -1 });
+
+//   res.status(200).json({
+//     status: "success",
+//     results: jobs.length,
+//     data: { jobs },
+//   });
+// });
+
 exports.getAllJobs = catchAsync(async (req, res, next) => {
+  const redisKey = "jobs:open";
+
+  const cachedJobs = await redisClient.get(redisKey);
+
+  if (cachedJobs) {
+    const jobs = JSON.parse(cachedJobs);
+
+    return res.status(200).json({
+      status: "success",
+      source: "redis",
+      results: jobs.length,
+      data: { jobs },
+    });
+  }
+
   const jobs = await Job.find({ status: "OPEN" })
     .populate("company", "name location")
     .sort({ createdAt: -1 });
 
+  await redisClient.setEx(
+    redisKey,
+    60, // ⏱️ cache for 60 seconds
+    JSON.stringify(jobs)
+  );
+
   res.status(200).json({
     status: "success",
+    source: "database",
     results: jobs.length,
     data: { jobs },
   });

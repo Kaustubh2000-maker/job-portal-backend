@@ -122,6 +122,8 @@ exports.checkCompanyUserExistence = catchAsync(async (req, res, next) => {
     // "name industry location"
   );
 
+  console.log(companyUser);
+
   if (!companyUser) {
     return res.status(200).json({
       status: "success",
